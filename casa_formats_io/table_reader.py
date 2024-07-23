@@ -15,7 +15,14 @@ def identify_casa_table(origin, *args, **kwargs):
 
 def read_casa_table(filename, data_desc_id=None):
     table = CASATable.read(filename)
+
     return table.as_astropy_table(data_desc_id=data_desc_id)
+
+
+def read(filename, name):
+    table = CASATable.read(filename)
+
+    return table.get_column(name=name)
 
 
 registry.register_identifier('casa-table', Table, identify_casa_table)

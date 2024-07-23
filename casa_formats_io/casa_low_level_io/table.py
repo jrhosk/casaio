@@ -46,7 +46,6 @@ class ScalarColumnData(BaseCasaObject):
 
     @classmethod
     def read(cls, f):
-
         self = cls()
 
         self.version = read_int32(f)
@@ -184,7 +183,8 @@ class ColumnSet(BaseCasaObject):
 
         # Prepare data managers
 
-        f.read(8)  # includes a length in bytes and bebebebe, need to check how this behaves when multiple DMs are present
+        f.read(
+            8)  # includes a length in bytes and bebebebe, need to check how this behaves when multiple DMs are present
 
         self.data_managers = OrderedDict()
 
@@ -279,6 +279,7 @@ class CASATable(BaseCasaObject):
             f = EndianAwareFileHandle(f_orig, '>', filename)
 
             magic = f.read(4)
+
             if magic != b'\xbe\xbe\xbe\xbe':
                 raise ValueError('Incorrect magic code: {0}'.format(magic))
 
@@ -315,6 +316,114 @@ class CASATable(BaseCasaObject):
                 return True
         return False
 
+    def get_column(self, name="DATA", include_columns=None):
+        """
+        Parameters
+        ----------
+        data_desc_id : 'all', None, or int
+            'all' will get all of the ddids as a list of tables
+            An integer will get the specified ddid number.
+            If there is only one ddid and `data_desc_id` is None, it will return that ddid.
+            Otherwise, an exception will be raised.
+
+        Returns
+        -------
+        table or list of tables
+        """
+
+        # We now loop over columns and read the relevant data from each bucket.
+
+        # TODO: refactor this to make it so that columns are read on request
+        # instead of all in one go. The best way to do this might be to make a
+        # table where each column is a dask array.
+
+        coldesc = self.desc.column_description
+
+        for colindex in range(len(coldesc)):
+
+            colname = coldesc[colindex].name
+
+            if include_columns is not None and colname not in include_columns:
+                continue
+
+            # Find the data manager to use for the column as well as the
+            # 'sequence number' - this is the value in e.g. table.f<seqnr>
+            seqnr = self.column_set.columns[colindex].data.seqnr
+            dm = self.column_set.data_managers[seqnr]
+
+            # Each data manager might only handle one or a few of the columns.
+            # It may internally have a list of the columns it deals with, so
+            # we need to figure out what the column index is in that specific
+            # data manager
+            colindex_in_dm = 0
+            for column in self.column_set.columns[:colindex]:
+                if column.data.seqnr == seqnr:
+                    colindex_in_dm += 1
+
+            if hasattr(dm, 'read_column'):
+
+                coldata = dm.read_column(
+                    self._filename,
+                    seqnr,
+                    self.column_set.columns[colindex],
+                    coldesc[colindex],
+                    colindex_in_dm
+                )
+
+                if coldata is None:
+                    print("No data found ...")
+                    return None
+
+                if colname == name:
+                    return coldata
+
+            else:
+                warnings.warn(f'Skipping column {colname} with data manager {dm.__class__.__name__}')
+        '''
+        # In some files (e.g. ms files) some columns can have variable shape. For now
+        # we only deal with this if DATA_DESC_ID is defined as a column in the table
+        # as it allows us to know how to extract sub-tables with constant shapes.
+
+        if 'DATA_DESC_ID' in table_columns:
+
+            # If DATA_DESC_ID is present but include_columns is used, it might
+            # actually be possible to represent the data as a single table.
+            for data in table_columns.values():
+                if isinstance(data, VariableShapeArrayList):
+                    break
+            else:
+                return AstropyTable(data=ensure_mixin_columns(table_columns))
+
+            data_desc_ids = sorted(np.unique(table_columns['DATA_DESC_ID']))
+
+            if data_desc_id is None and len(data_desc_ids) == 1:
+                data_desc_id = data_desc_ids[0]
+            elif data_desc_id == 'all':
+                tables = [self._read_data_descid(table_columns, ddid)
+                          for ddid in data_desc_ids]
+                return tables
+
+            try:
+                return self._read_data_descid(table_columns, data_desc_id)
+            except Exception as ex:
+                raise ValueError("There are multiple DATA_DESC_ID values present "
+                                 "in the table, select the one you need with "
+                                 "data_desc_id=<value>. Valid options are "
+                                 + "/".join([str(x) for x in data_desc_ids])
+                                 + f"  Parent exception was: {ex}")
+
+
+        else:
+
+            for data in table_columns.values():
+                if isinstance(data, VariableShapeArrayList):
+                    raise NotImplementedError(
+                        "Can't handle tables with variable shaped columns where DATA_DESC_ID does not exist")
+
+            return AstropyTable(data=ensure_mixin_columns(table_columns))
+            
+        '''
+
     def as_astropy_table(self, data_desc_id=None, include_columns=None):
         """
         Parameters
@@ -344,6 +453,9 @@ class CASATable(BaseCasaObject):
 
             colname = coldesc[colindex].name
 
+            # DEBUGGING
+            print(f"column name: {colname}")
+
             if include_columns is not None and colname not in include_columns:
                 continue
 
@@ -362,7 +474,8 @@ class CASATable(BaseCasaObject):
                     colindex_in_dm += 1
 
             if hasattr(dm, 'read_column'):
-                coldata = dm.read_column(self._filename, seqnr, self.column_set.columns[colindex], coldesc[colindex], colindex_in_dm)
+                coldata = dm.read_column(self._filename, seqnr, self.column_set.columns[colindex], coldesc[colindex],
+                                         colindex_in_dm)
                 if coldata is not None:
                     table_columns[colname] = coldata
             else:
@@ -405,7 +518,8 @@ class CASATable(BaseCasaObject):
 
             for data in table_columns.values():
                 if isinstance(data, VariableShapeArrayList):
-                    raise NotImplementedError("Can't handle tables with variable shaped columns where DATA_DESC_ID does not exist")
+                    raise NotImplementedError(
+                        "Can't handle tables with variable shaped columns where DATA_DESC_ID does not exist")
 
             return AstropyTable(data=ensure_mixin_columns(table_columns))
 
@@ -456,13 +570,39 @@ class CASATable(BaseCasaObject):
 
         return self
 
+    @classmethod
+    @with_nbytes_prefix
+    def read_desc(cls, f):
+
+        self = cls()
+
+        check_type_and_version(f, 'Table', 2)
+
+        self.nrow = read_int32(f)
+        self.fmt = read_int32(f)  # noqa
+        self.name = read_string(f)  # noqa
+
+        # DEBUGGING
+        print(f"nrow: {self.nrow}")
+        print(f"fmt: {self.fmt}")
+        print(f"name: {self.name}")
+
+        # big_endian = fmt == 0  # noqa
+
+        self.desc = TableDesc.read(f, self.nrow)
+        # DEBUGGING
+        #print(f"desc: {self.desc}")
+
+        self.column_set = ColumnSet.read(f, desc=self.desc)
+
+        return self.desc
+
 
 class TableDesc(BaseCasaObject):
 
     @classmethod
     @with_nbytes_prefix
     def read(cls, f, nrow):
-
         self = cls()
 
         check_type_and_version(f, 'TableDesc', 2)

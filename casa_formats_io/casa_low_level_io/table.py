@@ -362,20 +362,22 @@ class CASATable(BaseCasaObject):
 
             if hasattr(dm, 'read_column'):
 
-                coldata = dm.read_column(
-                    self._filename,
-                    seqnr,
-                    self.column_set.columns[colindex],
-                    coldesc[colindex],
-                    colindex_in_dm
-                )
-
-                if coldata is None:
-                    print("No data found ...")
-                    return None
-
                 if colname == name:
+
+                    coldata = dm.read_column(
+                        self._filename,
+                        seqnr,
+                        self.column_set.columns[colindex],
+                        coldesc[colindex],
+                        colindex_in_dm
+                    )
+
+                    if coldata is None:
+                        print("No data found ...")
+                        return None
+
                     return coldata
+
 
             else:
                 warnings.warn(f'Skipping column {colname} with data manager {dm.__class__.__name__}')
@@ -452,9 +454,6 @@ class CASATable(BaseCasaObject):
         for colindex in range(len(coldesc)):
 
             colname = coldesc[colindex].name
-
-            # DEBUGGING
-            print(f"column name: {colname}")
 
             if include_columns is not None and colname not in include_columns:
                 continue

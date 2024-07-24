@@ -120,21 +120,20 @@ class CASAArrayWrapper:
                                          offset=offset,
                                          count=self._chunksize * self._itemsize)
             else:
-                data_bytes = self._array[chunk_number*self._chunksize * self._itemsize:
-                                         (chunk_number + 1)*self._chunksize * self._itemsize]
+                data_bytes = self._array[chunk_number * self._chunksize * self._itemsize:
+                                         (chunk_number + 1) * self._chunksize * self._itemsize]
 
-            result =  (combine_chunks(data_bytes,
-                                      self._itemsize,
-                                      shape=self._chunkshape,
-                                      oversample=self._chunkoversample)
-                       .view(self.dtype)
-                       .reshape(self._chunkshape[::-1], order='F').T[item_in_chunk])
+            result = (combine_chunks(data_bytes,
+                                     self._itemsize,
+                                     shape=self._chunkshape,
+                                     oversample=self._chunkoversample)
+            .view(self.dtype)
+            .reshape(self._chunkshape[::-1], order='F').T[item_in_chunk])
 
         self._last_item = item
         self._last_result = result
 
         return result
-
 
 
 def image_to_dask(imagename, memmap=True, mask=False, target_chunksize=None):

@@ -338,6 +338,8 @@ class CASATable(BaseCasaObject):
         # table where each column is a dask array.
 
         coldesc = self.desc.column_description
+        print("############### COLDESC ###############")
+        print(coldesc)
 
         for colindex in range(len(coldesc)):
 
@@ -363,7 +365,6 @@ class CASATable(BaseCasaObject):
             if hasattr(dm, 'read_column'):
 
                 if colname == name:
-
                     coldata = dm.read_column(
                         self._filename,
                         seqnr,

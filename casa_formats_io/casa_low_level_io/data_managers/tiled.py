@@ -117,6 +117,7 @@ class TiledStMan(BaseCasaObject):
         return self._read_tsm_file(filename, seqnr, coldesc, totalshape, chunkshape)
 
     def _read_tsm_file(self, filename, seqnr, coldesc, totalshape, chunkshape, tsm_index=0, offset=0):
+        print("_read_tsm")
 
         totalshape = np.asarray(totalshape)
         chunkshape = np.asarray(chunkshape)
@@ -184,13 +185,22 @@ class TiledStMan(BaseCasaObject):
         from casa_formats_io.casa_dask import CASAArrayWrapper
 
         img_fn = os.path.join(filename, f'table.f{seqnr}_TSM{tsm_index}')
+        print(f"############ img_fn: {img_fn}")
+
+
+        print(f"dtype: {dtype}")
+        print(f"itemsize: {itemsize}")
+        print(f"memmap: {memmap}")
+        print(f"offset: {offset}")
 
         wrapper = CASAArrayWrapper(img_fn, totalshape, chunkshape,
                                    chunkoversample=chunkoversample, dtype=dtype,
                                    itemsize=itemsize, memmap=memmap, offset=offset)
 
+        #return wrapper
         # Convert to a dask array
         import uuid
+
         from dask.array import from_array
         dask_array = from_array(wrapper, name='CASA Data ' + str(uuid.uuid4()),
                                 chunks=chunkshape[::-1], meta=np.array([[[]]], dtype=dtype))

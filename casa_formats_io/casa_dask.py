@@ -130,6 +130,8 @@ class CASAArrayWrapper:
             .view(self.dtype)
             .reshape(self._chunkshape[::-1], order='F').T[item_in_chunk])
 
+            print(item_in_chunk)
+
         self._last_item = item
         self._last_result = result
 

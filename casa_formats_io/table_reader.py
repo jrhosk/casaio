@@ -14,9 +14,17 @@ def identify_casa_table(origin, *args, **kwargs):
 
 
 def read_casa_table(filename, data_desc_id=None):
+    import time
+    start = time.time()
     table = CASATable.read(filename)
+    print(f"Time to read table info: {time.time() - start}")
 
-    return table.as_astropy_table(data_desc_id=data_desc_id)
+    start = time.time()
+    astable = table.as_astropy_table(data_desc_id=data_desc_id)
+    print(f"Time to produce data table: {time.time() - start}")
+
+    #return table.as_astropy_table(data_desc_id=data_desc_id)
+    return astable
 
 
 def read(filename, name):

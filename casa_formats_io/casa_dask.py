@@ -94,7 +94,7 @@ class CASAArrayWrapper:
             else:
                 item_in_chunk.append(item[dim] - indices[dim] * self._chunkshape[dim])
         item_in_chunk = tuple(item_in_chunk)
-
+        
         if self._itemsize == 1:
 
             if self._memmap:
@@ -130,7 +130,7 @@ class CASAArrayWrapper:
             .view(self.dtype)
             .reshape(self._chunkshape[::-1], order='F').T[item_in_chunk])
 
-            print(item_in_chunk)
+
 
         self._last_item = item
         self._last_result = result

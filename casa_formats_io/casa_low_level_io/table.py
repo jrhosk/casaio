@@ -338,8 +338,9 @@ class CASATable(BaseCasaObject):
         # table where each column is a dask array.
 
         coldesc = self.desc.column_description
-        print("############### COLDESC ###############")
-        print(coldesc)
+        #print("############### COLDESC ###############")
+        #print(coldesc)
+        import time
 
         for colindex in range(len(coldesc)):
 
@@ -365,6 +366,8 @@ class CASATable(BaseCasaObject):
             if hasattr(dm, 'read_column'):
 
                 if colname == name:
+
+                    start = time.time()
                     coldata = dm.read_column(
                         self._filename,
                         seqnr,
@@ -372,7 +375,7 @@ class CASATable(BaseCasaObject):
                         coldesc[colindex],
                         colindex_in_dm
                     )
-
+                    print(time.time() - start)
                     if coldata is None:
                         print("No data found ...")
                         return None

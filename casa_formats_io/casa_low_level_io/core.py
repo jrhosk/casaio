@@ -79,7 +79,7 @@ def with_nbytes_prefix(func):
 def check_type_and_version(f, name, versions):
 
     # HACK: sometimes the endian flag is not set correctly on f, and we need to
-    # figure out why. In the mean time, we can tell the actual endianness from
+    # figure out why. In the meantime, we can tell the actual endianness from
     # the next byte, because we expect the next four bytes to be the length of
     # the name string, and this won't be ridiculously long.
 

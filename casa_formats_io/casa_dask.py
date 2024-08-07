@@ -2,6 +2,8 @@
 
 from __future__ import print_function, absolute_import, division
 
+import json
+from json import JSONDecodeError
 from math import prod
 import os
 from math import ceil
@@ -94,7 +96,7 @@ class CASAArrayWrapper:
             else:
                 item_in_chunk.append(item[dim] - indices[dim] * self._chunkshape[dim])
         item_in_chunk = tuple(item_in_chunk)
-        
+
         if self._itemsize == 1:
 
             if self._memmap:
@@ -130,10 +132,13 @@ class CASAArrayWrapper:
             .view(self.dtype)
             .reshape(self._chunkshape[::-1], order='F').T[item_in_chunk])
 
-
-
         self._last_item = item
         self._last_result = result
+
+        print(f"chunksize: {self.chunksize}")
+        print(f"chunksize: {self.chunkshape}")
+        print(f"chunkoversample: {self._chunkoversample}")
+        print(f"count: {self._chunksize * self._itemsize}")
 
         return result
 

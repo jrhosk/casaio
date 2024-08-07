@@ -87,7 +87,6 @@ class TiledStMan(BaseCasaObject):
         self.tile_shapes = []
 
         for itsm in range(self.nrfile):
-
             unknown = read_int32(f)  # 1
 
             Record.read(f)
@@ -184,13 +183,14 @@ class TiledStMan(BaseCasaObject):
         from casa_formats_io.casa_dask import CASAArrayWrapper
 
         img_fn = os.path.join(filename, f'table.f{seqnr}_TSM{tsm_index}')
-        #print(f"############ img_fn: {img_fn}")
 
+        if os.getenv("CASAIO_VERBOSE") == "true":
 
-        #print(f"dtype: {dtype}")
-        #print(f"itemsize: {itemsize}")
-        #print(f"memmap: {memmap}")
-        #print(f"offset: {offset}")
+            print(f"image_data: {img_fn}")
+            print(f"dtype: {dtype}")
+            print(f"item_size: {itemsize}")
+            print(f"memmap:{memmap}")
+            print(f"offset:{offset}")
 
         wrapper = CASAArrayWrapper(img_fn, totalshape, chunkshape,
                                    chunkoversample=chunkoversample, dtype=dtype,
@@ -222,7 +222,6 @@ class TiledCellStMan(TiledStMan):
 
     @with_nbytes_prefix
     def read_header(self, f):
-
         # The code in this function corresponds to TiledStMan::headerFileGet
         # https://github.com/casacore/casacore/blob/75b358be47039250e03e5042210cbc60beaaf6e4/tables/DataMan/TiledStMan.cc#L1086
 

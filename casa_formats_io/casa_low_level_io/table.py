@@ -555,7 +555,7 @@ class CASATable(BaseCasaObject):
 
     @classmethod
     @with_nbytes_prefix
-    def read_fileobj(cls, f):
+    def read_fileobj(cls, f, verbose=False):
 
         self = cls()
 

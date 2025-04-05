@@ -99,6 +99,7 @@ def check_type_and_version(f, name, versions):
     if np.isscalar(versions):
         versions = [versions]
     stype, sversion = read_type(f)
+    print(f"type: {stype}, version: {sversion}")
     if stype != name or sversion not in versions:
         raise NotImplementedError('Support for {0} version {1} not implemented'
                                   .format(stype, sversion))

@@ -24,7 +24,7 @@ class TiledStMan(BaseCasaObject):
 
     @with_nbytes_prefix
     def read_header(self, f):
-
+        #print(f"[start]: TiledStMan.read_header()")
         version = check_type_and_version(f, 'TiledStMan', (1, 2))
 
         if version >= 2:
@@ -35,14 +35,17 @@ class TiledStMan(BaseCasaObject):
         # TODO: Set endian flag on f here
 
         self.seqnr = read_int32(f)
+
         # if self.seqnr != 0:
         #     raise ValueError("Expected seqnr to be 0, got {0}".format(self.seqnr))
 
         self.nrows = read_int32(f)
+
         # if self.nrows != 1:
         #     raise ValueError("Expected nrows to be 1, got {0}".format(self.nrows))
 
         self.ncols = read_int32(f)
+
         if self.ncols != 1:
             raise ValueError("Expected ncols to be 1, got {0}".format(self.ncols))
 
@@ -52,6 +55,7 @@ class TiledStMan(BaseCasaObject):
         self.ndim = read_int32(f)
 
         self.nrfile = read_int32(f)  # 1
+        #print(f"nrfile: {self.nrfile}")
         # if self.nrfile != 1:
         #     raise ValueError("Expected nrfile to be 1, got {0}".format(self.nrfile))
 
@@ -62,6 +66,7 @@ class TiledStMan(BaseCasaObject):
             # The following flag seems to control whether or not the TSM file is
             # opened by CASA, and is probably safe to ignore here.
             flag = bool(f.read(1) == b'\x01')
+            #print(f"\t- [{itsm}]: flag: {flag}")
 
             if not flag:
                 continue
@@ -72,39 +77,54 @@ class TiledStMan(BaseCasaObject):
             # are more that one field in the image.
 
             mode = read_int32(f)
+            #print(f"\t- [{itsm}]: mode: {mode}")
+
             unknown = read_int32(f)  # 0
+            #print(f"\t- [{itsm}]: unknown[0]: {unknown}")
 
             if mode == 1:
                 self.total_cube_size = read_int32(f)
+                #print(f"\t- [{itsm}] total_cube_size[{mode}]: {self.total_cube_size}")
             elif mode == 2:
                 self.total_cube_size = read_int64(f)
+                #print(f"\t- [{itsm}] total_cube_size[{mode}]: {self.total_cube_size}")
             else:
                 raise ValueError('Unexpected value {0} at position {1}'.format(mode, f.tell() - 8))
 
         unknown = read_int32(f)  # 1
+        #print(f"unknown[1]: {unknown}")
 
         self.cube_shapes = []
         self.tile_shapes = []
 
         for itsm in range(self.nrfile):
             unknown = read_int32(f)  # 1
+            #print(f"\t- [{itsm}]: unknown[2]: {unknown}")
 
             Record.read(f)
 
             flag = f.read(1)  # noqa
+            #print(f"\t- [{itsm}]: flag: {flag}")
 
             ndim2 = read_int32(f)  # noqa
+            #print(f"\t- [{itsm}]: ndim2: {ndim2}")
 
             self.cube_shapes.append(read_iposition(f))
             self.tile_shapes.append(read_iposition(f))
+            print(f"cube_shapes[{itsm}]: {self.cube_shapes[-1]}")
+            print(f"tile_shapes[{itsm}]: {self.tile_shapes[-1]}")
 
             unknown = read_int32(f)  # noqa
+            #print(f"\t- [{itsm}]: unknown[3]: {unknown}")
+
             unknown = read_int32(f)  # noqa
+            #print(f"\t- [{itsm}]: unknown[4]: {unknown}")
 
     def read_column(self, filename, seqnr, column, coldesc, colindex_in_dm):
 
         # chunkshape defines how the chunks (array subsets) are written to disk
         chunkshape = tuple(self.tile_shapes[0])
+        #print(f"\t- [{seqnr}]: chunkshape: {chunkshape}")
 
         # the total shape defines the final output array shape
         if len(self.cube_shapes[0]) > 0:
@@ -112,6 +132,7 @@ class TiledStMan(BaseCasaObject):
         else:
             # FIXME: below is not the right default!
             totalshape = np.array(chunkshape)
+        #print(f"\t- totalshape: {totalshape}")
 
         return self._read_tsm_file(filename, seqnr, coldesc, totalshape, chunkshape)
 
@@ -150,6 +171,7 @@ class TiledStMan(BaseCasaObject):
         if target_chunksize is None:
             target_chunksize = 10000000
 
+
         if chunksize < target_chunksize:
 
             # Find optimal chunk - since we want to be efficient we want the new
@@ -178,6 +200,7 @@ class TiledStMan(BaseCasaObject):
             chunkoversample = (1,) * len(chunkshape)
 
         chunkshape = [c * o for (c, o) in zip(chunkshape, chunkoversample)]
+        print(f"CHUNKSHAPE: {chunkshape}")
 
         # Create a wrapper that takes slices and returns the appropriate CASA data
         from casa_formats_io.casa_dask import CASAArrayWrapper
@@ -248,9 +271,14 @@ class TiledShapeStMan(TiledStMan):
     @with_nbytes_prefix
     def read_header(self, f):
         check_type_and_version(f, 'TiledShapeStMan', 1)
+        #print(f"[finished]: type_and_version")
+
         super(TiledShapeStMan, self).read_header(f)
         self.default_tile_shape = read_iposition(f)
+        #print(f"default_tile_shape: {self.default_tile_shape}")
+
         self.number_used_row_map = read_int32(f)
+        #print(f"number_used_row_map: {self.number_used_row_map}")
 
         # The data might be split into multiple cubes (TSM<index> files). The
         # following three values help us piece these together into the main
@@ -270,18 +298,21 @@ class TiledShapeStMan(TiledStMan):
         self.last_row_sub = Block.read(f, read_int32)
 
     def read_column(self, filename, seqnr, column, coldesc, colindex_in_dm):
-
+        #print(f"filename: {filename}: seqnr: {seqnr}")
         # chunkshape defines how the chunks (array subsets) are written to disk
         chunkshape = list(self.default_tile_shape)
+        print(f"chunkshape: {chunkshape}")
 
         if len(self.last_row_abs.elements) == 0:
             return VariableShapeArrayList([])
 
         tsm_indices = np.unique(self.cube_index.elements)
+        print(f"tsm_indices: {tsm_indices}")
 
         # Start off by reading each TSM file into a dask array
         dask_arrays = {}
         for itsm in tsm_indices:
+            print(f"index: {itsm} - chunk_shape: {self.cube_shapes[itsm]}\ttile_shape: {self.tile_shapes[itsm]}")
             dask_arrays[itsm] = self._read_tsm_file(filename, seqnr, coldesc,
                                                     self.cube_shapes[itsm],
                                                     self.tile_shapes[itsm],

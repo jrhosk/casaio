@@ -25,6 +25,8 @@ class RecordDesc(BaseCasaObject):
         check_type_and_version(f, 'RecordDesc', 2)
 
         self.nrec = read_int32(f)
+        print(f"nrec: {self.nrec}")
+
 
         self.names = []
         self.types = []
@@ -32,7 +34,10 @@ class RecordDesc(BaseCasaObject):
 
         for i in range(self.nrec):
             self.names.append(read_string(f))
+            print(f"name [{i}]: {self.names[i]}")
+
             self.types.append(TYPES[read_int32(f)])
+            print(f"type [{i}]: {self.types[i]}")
             # Here we don't actually load in the data for may of the types - hence
             # why we don't do anything with the values we read in.
             if self.types[-1] in ('bool', 'int', 'uint', 'float', 'double',
@@ -49,5 +54,5 @@ class RecordDesc(BaseCasaObject):
             else:
                 raise NotImplementedError("Support for type {0} in RecordDesc "
                                           "not implemented".format(self.types[-1]))
-
+            print(f"value [{i}]: {self.values[i]}")
         return self

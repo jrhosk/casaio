@@ -288,6 +288,8 @@ class CASATable(BaseCasaObject):
         for dm_index, dm in table.column_set.data_managers.items():
 
             fx_filename = os.path.join(filename, f'table.f{dm_index}')
+            print(f"> file: {fx_filename}")
+            print(f"> type: {type(dm)}")
 
             if os.path.exists(fx_filename):
 
@@ -297,6 +299,7 @@ class CASATable(BaseCasaObject):
                         endian = '>'
 
                     f = EndianAwareFileHandle(f_orig, endian, filename)
+                    print(f"\t >> endian: {f_orig}\n\t== {endian}\n\t== {filename}")
 
                     magic = f.read(4)
                     if magic != b'\xbe\xbe\xbe\xbe':
@@ -353,7 +356,8 @@ class CASATable(BaseCasaObject):
             # 'sequence number' - this is the value in e.g. table.f<seqnr>
             seqnr = self.column_set.columns[colindex].data.seqnr
             dm = self.column_set.data_managers[seqnr]
-
+            if colname == name:
+                print(f"seqnr: {seqnr}")
             # Each data manager might only handle one or a few of the columns.
             # It may internally have a list of the columns it deals with, so
             # we need to figure out what the column index is in that specific
@@ -366,6 +370,10 @@ class CASATable(BaseCasaObject):
             if hasattr(dm, 'read_column'):
 
                 if colname == name:
+                    #print(f"data manager: {dm}\n")
+                    #print(
+                    #    f">>> filename: {self._filename},\n>>> seqnr: {seqnr}, \n>>> column_set."
+                    #    f"columns: {self.column_set.columns[colindex],} \n>>> colindex: {colindex_in_dm} \n>>> columndesc: {coldesc[colindex]} \n>>> colindex: {colindex_in_dm}")
 
                     start = time.time()
                     coldata = dm.read_column(
@@ -375,6 +383,8 @@ class CASATable(BaseCasaObject):
                         coldesc[colindex],
                         colindex_in_dm
                     )
+
+
                     print(time.time() - start)
                     if coldata is None:
                         print("No data found ...")
